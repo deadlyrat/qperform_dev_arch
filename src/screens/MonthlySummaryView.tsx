@@ -1,5 +1,6 @@
 // src/screens/performance/monthly_summary/MonthlySummaryView.tsx
 
+import { useState, useEffect } from 'react'; // <-- Import useState and useEffect
 import {
   Card,
   CardHeader,
@@ -9,8 +10,9 @@ import {
   DataGridHeader,
   DataGridHeaderCell,
   DataGridRow,
-  TableColumnDefinition,
+  type TableColumnDefinition,
   createTableColumn,
+  Spinner,
 } from '@fluentui/react-components';
 import { 
   People24Regular, 
@@ -18,82 +20,35 @@ import {
   ChartMultiple24Regular, 
   ArrowTrendingLines24Regular 
 } from '@fluentui/react-icons';
+// --- 1. IMPORT YOUR API FUNCTIONS AND TYPES ---
+import { 
+  fetchMonthlySummary, 
+  transformToSummaryItems,
+  calculateKPIs,
+  type SummaryData,
+  type SummaryItem,
+} from '..//services/api'; // Adjust path if necessary
 import './MonthlySummaryView.css';
 
-// --- Types ---
-interface SummaryItem {
-  client: string;
-  category: string;
-  totalAFTEs: number;
-  underperformers: number;
-  weeksWithIssues: number;
-  avgScore: number;
-}
-
-// --- Mock Data ---
-// TODO: Replace with PostgreSQL data from API
-const summaryItems: SummaryItem[] = [
-  {
-    client: 'Acme Corp',
-    category: 'Customer Service',
-    totalAFTEs: 45,
-    underperformers: 8,
-    weeksWithIssues: 4,
-    avgScore: 72,
-  },
-  {
-    client: 'TechStart Inc',
-    category: 'Sales',
-    totalAFTEs: 32,
-    underperformers: 3,
-    weeksWithIssues: 2,
-    avgScore: 81,
-  },
-  {
-    client: 'Global Solutions',
-    category: 'Technical Support',
-    totalAFTEs: 28,
-    underperformers: 5,
-    weeksWithIssues: 3,
-    avgScore: 75,
-  },
-];
-
-// --- Column Definitions for the DataGrid ---
+// --- Column Definitions for the DataGrid (can stay outside the component) ---
 const columns: TableColumnDefinition<SummaryItem>[] = [
   createTableColumn<SummaryItem>({
     columnId: 'client',
-    compare: (a, b) => a.client.localeCompare(b.client),
     renderHeaderCell: () => 'Client',
     renderCell: (item) => item.client,
   }),
   createTableColumn<SummaryItem>({
     columnId: 'category',
-    compare: (a, b) => a.category.localeCompare(b.category),
     renderHeaderCell: () => 'Category',
     renderCell: (item) => item.category,
   }),
   createTableColumn<SummaryItem>({
     columnId: 'totalAFTEs',
-    compare: (a, b) => a.totalAFTEs - b.totalAFTEs,
     renderHeaderCell: () => 'Total AFTEs',
     renderCell: (item) => item.totalAFTEs,
   }),
   createTableColumn<SummaryItem>({
-    columnId: 'underperformers',
-    compare: (a, b) => a.underperformers - b.underperformers,
-    renderHeaderCell: () => 'Underperformers',
-    renderCell: (item) => item.underperformers,
-  }),
-  createTableColumn<SummaryItem>({
-    columnId: 'weeksWithIssues',
-    compare: (a, b) => a.weeksWithIssues - b.weeksWithIssues,
-    renderHeaderCell: () => 'Weeks with Issues',
-    renderCell: (item) => item.weeksWithIssues,
-  }),
-  createTableColumn<SummaryItem>({
     columnId: 'avgScore',
-    compare: (a, b) => a.avgScore - b.avgScore,
     renderHeaderCell: () => 'Avg Score',
     renderCell: (item) => <strong>{item.avgScore}</strong>,
   }),
@@ -105,43 +60,68 @@ const columns: TableColumnDefinition<SummaryItem>[] = [
 ];
 
 export default function MonthlySummaryView() {
+  // --- 2. SET UP STATE FOR YOUR DATA ---
+  const [summaryItems, setSummaryItems] = useState<SummaryItem[]>([]);
+  const [kpi, setKpi] = useState({ totalAFTEs: 0, totalUnderperformers: 0, underperformerPercentage: '0.0', avgScore: '0.0' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // --- 3. USE useEffect TO FETCH DATA WHEN THE COMPONENT MOUNTS ---
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Call your specific API function
+        const rawSummaryData: SummaryData[] = await fetchMonthlySummary();
+
+        // Use your helper functions to process the data
+        const transformedItems = transformToSummaryItems(rawSummaryData);
+        const calculatedKpis = calculateKPIs(rawSummaryData);
+
+        // Update the state with the processed data
+        setSummaryItems(transformedItems);
+        setKpi(calculatedKpis);
+
+      } catch (err: any) {
+        console.error(err);
+        setError("Failed to load summary data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []); // The empty array [] means this effect runs only once when the component mounts
+
+  // --- 4. HANDLE LOADING AND ERROR STATES ---
+  if (loading) {
+    return <Spinner label="Loading summary data..." />;
+  }
+
+  if (error) {
+    return <div style={{ color: 'red', padding: '20px' }}>{error}</div>;
+  }
+
+  // --- 5. RENDER THE COMPONENT WITH DYNAMIC DATA ---
   return (
     <div className="summary-view-container">
-      {/* KPI Cards Section */}
+      {/* KPI Cards Section with live data */}
       <div className="kpi-cards-grid">
         <Card className="kpi-card">
-          <CardHeader 
-            header={
-              <div className="card-title">
-                Total AFTEs <People24Regular />
-              </div>
-            } 
-          />
-          <div className="kpi-value">143</div>
+          <CardHeader header={<div className="card-title">Total AFTEs <People24Regular /></div>} />
+          <div className="kpi-value">{kpi.totalAFTEs}</div>
           <div className="kpi-description">Across all clients and categories</div>
         </Card>
-
         <Card className="kpi-card">
-          <CardHeader 
-            header={
-              <div className="card-title">
-                Underperformers <Warning24Regular />
-              </div>
-            } 
-          />
-          <div className="kpi-value">20</div>
-          <div className="kpi-description">14.0% of total workforce</div>
+          <CardHeader header={<div className="card-title">Underperformers <Warning24Regular /></div>} />
+          <div className="kpi-value">{kpi.totalUnderperformers}</div>
+          <div className="kpi-description">{kpi.underperformerPercentage}% of total workforce</div>
         </Card>
-
         <Card className="kpi-card">
-          <CardHeader 
-            header={
-              <div className="card-title">
-                Average Score <ChartMultiple24Regular />
-              </div>
-            } 
-          />
-          <div className="kpi-value">76.5</div>
+          <CardHeader header={<div className="card-title">Average Score <ChartMultiple24Regular /></div>} />
+          <div className="kpi-value">{kpi.avgScore}</div>
           <div className="kpi-description">Overall performance metric</div>
         </Card>
       </div>
@@ -153,21 +133,15 @@ export default function MonthlySummaryView() {
           items={summaryItems} 
           columns={columns} 
           sortable
-          getRowId={(item) => item.client}
+          getRowId={(item) => item.client + item.category}
         >
           <DataGridHeader>
-            <DataGridRow>
-              {({ renderHeaderCell }) => (
-                <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-              )}
-            </DataGridRow>
+            <DataGridRow>{(column) => <DataGridHeaderCell>{column.renderHeaderCell()}</DataGridHeaderCell>}</DataGridRow>
           </DataGridHeader>
           <DataGridBody<SummaryItem>>
             {({ item, rowId }) => (
               <DataGridRow<SummaryItem> key={rowId}>
-                {({ renderCell }) => (
-                  <DataGridCell>{renderCell(item)}</DataGridCell>
-                )}
+                {(column) => <DataGridCell>{column.renderCell(item)}</DataGridCell>}
               </DataGridRow>
             )}
           </DataGridBody>

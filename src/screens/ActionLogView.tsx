@@ -1,29 +1,57 @@
 // src/screens/performance/action_log/ActionLogView.tsx
 
-import { Card, Input } from '@fluentui/react-components';
+import * as React from 'react';
+import { useState, useEffect } from 'react'; // <-- Import hooks
+import { Card, Input, Spinner } from '@fluentui/react-components'; // <-- Import Spinner
 import { Search24Regular } from '@fluentui/react-icons';
+import { fetchActionLog, type ActionLog } from '../services/api'; // <-- Import API function
 import './ActionLogView.css';
 
-// --- Mock Data ---
-const actionLogItems = [
-  {
-    type: 'Final Warning',
-    employeeName: 'Robert Wilson',
-    details: 'Consistent underperformance for 4 consecutive weeks. Final warning issued before termination consideration.',
-    takenBy: 'Director Smith',
-    date: 'December 17, 2024',
-  },
-  {
-    type: 'Written Warning',
-    employeeName: 'John Doe',
-    details: 'Performance dropped to critical levels in weeks 3-4. Written warning provided with 30-day improvement plan.',
-    takenBy: 'Manager Johnson',
-    date: 'December 14, 2024',
-  },
-  // Add more items as needed
-];
+// --- MOCK Data REMOVED ---
 
 export default function ActionLogView() {
+  const [actionLogItems, setActionLogItems] = useState<ActionLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Function to load data
+  const loadActionLog = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchActionLog();
+      setActionLogItems(data);
+    } catch (err) {
+      console.error('Error fetching action log:', err);
+      setError("Failed to load action history. Check API connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadActionLog();
+  }, []); // Load once on mount
+
+  const handleSearchChange = (_e: React.ChangeEvent<HTMLInputElement>, data: { value: string }) => {
+    setSearchTerm(data.value);
+  };
+  
+  const filteredItems = actionLogItems.filter(item => 
+      item.agent_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.action_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return <Spinner label="Loading action history..." />;
+  }
+
+  if (error) {
+    return <div style={{ color: 'red', padding: '20px' }}>{error}</div>;
+  }
+
   return (
     <div className="action-log-container">
       <div className="action-log-header">
@@ -31,21 +59,24 @@ export default function ActionLogView() {
         <Input
           contentAfter={<Search24Regular />}
           placeholder="Search actions..."
+          value={searchTerm}
+          onChange={handleSearchChange}
         />
       </div>
 
       <div className="action-log-list">
-        {actionLogItems.map((item, index) => (
-          <Card key={index} className="action-log-card">
+        {filteredItems.length === 0 && <p>No actions found.</p>}
+        {filteredItems.map((item) => (
+          <Card key={item.id} className="action-log-card">
             <div className="card-main-header">
-              <span className="action-type">{item.type}</span>
-              <span className="employee-name">{item.employeeName}</span>
+              <span className="action-type">{item.action_type}</span>
+              <span className="employee-name">{item.agent_email.split('@')[0]}</span>
             </div>
-            <p className="action-details">{item.details}</p>
+            <p className="action-details">{item.description}</p>
             <div className="card-footer">
-              <span>Taken by: {item.takenBy}</span>
+              <span>Taken by: {item.taken_by}</span>
               <span>•</span>
-              <span>{item.date}</span>
+              <span>{new Date(item.action_date).toLocaleDateString()}</span>
             </div>
           </Card>
         ))}

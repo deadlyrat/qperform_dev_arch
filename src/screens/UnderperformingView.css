@@ -10,73 +10,100 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap; /* Allows filters to wrap on smaller screens */
+  gap: 16px;
 }
 
 .left-filters, .right-filters {
   display: flex;
   gap: 16px;
+  align-items: center;
 }
 
 .category-toggle {
-  margin-top: -8px; /* Slight overlap with bar above */
+  margin-top: -8px; 
 }
 
-/* --- DataGrid Styling --- */
-.data-grid-underperforming {
-  background-color: transparent;
-  border: none;
+/* --- NEW CUSTOM GRID SYSTEM --- */
+
+.custom-grid-container {
+  /* This defines our grid. We'll specify the number of columns in the component. */
+  display: grid;
+  /* This sets the space between our "cards" */
+  gap: 16px;
+  /* Ensure the grid aligns its items at the start (top) */
+  align-items: start;
+}
+
+.grid-header-row {
+  /* This makes the header row a subgrid that aligns with the main grid */
+  display: contents; 
 }
 
 .grid-header-cell {
-  background-color: transparent !important;
-  font-weight: bold;
+  font-weight: 600;
   color: #333;
-  text-align: center;
-  border: none !important;
-}
-
-.grid-body-cell {
-  background-color: #ffffff;
-  border: 1px solid #e1e1e1;
-  border-radius: 8px;
-  margin: 4px;
-  padding: 16px !important;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.employee-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  padding: 0 8px 8px 8px; /* Padding for the header text */
   text-align: left;
 }
 
-.week-cell .weekly-score {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #005a9e;
+.grid-body-row {
+  /* Each data row is also a subgrid, ensuring perfect column alignment */
+  display: contents;
 }
 
-.week-cell .action-taken-label {
+.grid-card {
+  background-color: #ffffff;
+  border: 1px solid #e1e1e1;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  height: 100%; /* Makes cards in the same row the same height */
+  text-align: left;
+}
+
+/* Specific styling for the content inside the cards */
+
+.employee-cell-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.week-cell-card .weekly-score {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.week-cell-card .action-taken-label {
   font-size: 0.8rem;
   color: #606060;
-}
-
-.week-cell .action-taken-value {
   font-weight: bold;
 }
 
-.monthly-results-cell {
-    align-items: flex-start;
-    text-align: left;
-    gap: 4px;
+.week-cell-card .action-taken-value {
+  font-weight: 600;
 }
-.monthly-results-cell svg {
-    cursor: pointer;
-    margin-top: 8px;
+
+.monthly-results-card {
+  justify-content: space-between;
+}
+
+.monthly-results-card .result-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.monthly-results-card .result-item span:first-child {
+  font-weight: 600;
+}
+
+.monthly-results-card svg {
+  cursor: pointer;
+  color: #0078d4;
+  align-self: flex-end;
 }

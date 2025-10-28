@@ -4,9 +4,16 @@ import { Avatar } from '@fluentui/react-components';
 import { AlertUrgent24Regular, Settings24Regular } from '@fluentui/react-icons';
 import './Header.css';
 
-const logoUrl = '/qperform-logo.svg'; // Using the same logo from the public folder
+const logoUrl = '/qperform-logo.svg';
 
-export default function Header() {
+// Define the type for the props
+type HeaderProps = {
+  userName: string;
+  notificationCount: number;
+};
+
+// Accept the props as an argument
+export default function Header({ userName, notificationCount }: HeaderProps) {
   return (
     <header className="app-header">
       <div className="header-left">
@@ -19,10 +26,14 @@ export default function Header() {
       <div className="header-right">
         <div className="notification-icon">
           <AlertUrgent24Regular />
-          <div className="notification-badge">3</div> {/* Example badge */}
+          {/* Only show the badge if the count is greater than 0 */}
+          {notificationCount > 0 && (
+            <div className="notification-badge">{notificationCount}</div>
+          )}
         </div>
         <Settings24Regular />
-        <Avatar name="Pablo Aguirre" size={32} /> {/* Uses initials as a fallback */}
+        {/* Use the dynamic userName prop for the Avatar */}
+        <Avatar name={userName} size={32} />
       </div>
     </header>
   );
