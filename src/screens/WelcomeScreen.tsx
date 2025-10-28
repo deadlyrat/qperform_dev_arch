@@ -1,48 +1,54 @@
-// src/screens/welcome/WelcomeScreen.tsx
+// src/screens/WelcomeScreen.tsx
 
-import { Button } from '@fluentui/react-components';
-import { ArrowRight16Filled } from '@fluentui/react-icons';
-import './WelcomeScreen.css'; // Import the stylesheet
+import { Button, tokens } from '@fluentui/react-components';
+import { ChartMultiple24Regular } from '@fluentui/react-icons';
+import './WelcomeScreen.css';
 
-// This defines the props (properties) that our component expects.
-// It needs one function called 'onEnter' that takes no arguments and returns nothing.
-type WelcomeScreenProps = {
+interface WelcomeScreenProps {
   onEnter: () => void;
-};
+}
 
-// We use the 'logo.svg' from the public folder.
-// You can replace this with your actual logo file.
-const logoUrl = '/qperform-logo.svg'; // Make sure you have a logo file here in your `public` folder
+const ONQ_LOGO_URL = 'https://onq.global/wp-content/uploads/2025/05/OnQ_Logo_4Color-400x90.webp';
 
 export default function WelcomeScreen({ onEnter }: WelcomeScreenProps) {
   return (
     <div className="welcome-container">
       <div className="welcome-content">
-        <img src={logoUrl} alt="QPerform Logo" className="welcome-logo" />
         
+        {/* NEW LOGO - Sizing controlled by inline style for precise banner display */}
+        <img 
+          src={ONQ_LOGO_URL} 
+          alt="OnQ Global Logo" 
+          className="welcome-logo" 
+          style={{ width: '180px', height: 'auto', marginBottom: tokens.spacingVerticalXXL }}
+        />
+        
+        {/* Removed <hr> tags for cleaner layout, combined text elements for better hierarchy */}
         <h1 className="welcome-title">QPerform</h1>
-        <p className="welcome-subtitle">Performance Management System</p>
-        
-        <span className="welcome-version">Version 1.0.0</span>
+        <hr></hr>
+        <h2 className="welcome-subtitle">
+            Performance Management Suite
+        </h2>
+
+        <div className="welcome-version">Version 0.1.0</div>
 
         <p className="welcome-description">
-          Monitor employee performance, track weekly scores, and take
-          action on underperforming team members with real-time
-          insights and analytics.
+          This system provides leadership members with a clear, visual, and weekly review of Production and QA performance results across all operation employees. Our focus is on highlighting "At Risk" performance and providing automated, actionable recommendations to ensure continuous improvement and compliance with OnQ's Standards.
         </p>
-
+    
         <Button 
           appearance="primary" 
-          icon={<ArrowRight16Filled />} 
-          iconPosition="after" 
-          onClick={onEnter} // When this button is clicked, it calls the function passed down from App.tsx
           size="large"
+          icon={<ChartMultiple24Regular />}
+          onClick={onEnter}
         >
           Enter Dashboard
         </Button>
       </div>
 
-      <p className="welcome-footer">Powered by Performance Analytics</p>
+      <div className="welcome-footer">
+        <p>&copy; 2025 OnQ Global. All Rights Reserved.</p>
+      </div>
     </div>
   );
 }

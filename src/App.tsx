@@ -4,25 +4,33 @@ import { useState } from 'react';
 import { FluentProvider, teamsLightTheme } from '@fluentui/react-components';
 import WelcomeScreen from './screens/WelcomeScreen';
 import PerformanceScreen from './screens/PerformanceScreen';
-import OrientationLock from './components/ui/OrientationLock'; // Assuming you have this
+import OrientationLock from './components/ui/OrientationLock'; 
 import './App.css'; 
 
 function App() {
+  // State controls which screen is visible: Welcome (false) or Dashboard (true)
   const [showDashboard, setShowDashboard] = useState(false);
 
   const handleEnterDashboard = () => {
     setShowDashboard(true);
   };
+  
+  // This function resets the state to show the WelcomeScreen
+  const handleGoToWelcome = () => {
+    setShowDashboard(false);
+  };
 
   return (
-    // This container now uses our full-screen styles from App.css
     <div className="app-container">
       <OrientationLock />
 
       <FluentProvider theme={teamsLightTheme}>
         {showDashboard ? (
-          <PerformanceScreen />
+          // Renders the main app dashboard.
+          // It receives the navigation reset function, which is relayed to the Header.
+          <PerformanceScreen onGoToWelcome={handleGoToWelcome} />
         ) : (
+          // Renders the initial landing page.
           <WelcomeScreen onEnter={handleEnterDashboard} />
         )}
       </FluentProvider>

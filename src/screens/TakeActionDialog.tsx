@@ -29,6 +29,7 @@ type TakeActionDialogProps = {
   isOpen: boolean;
   onDismiss: () => void;
   employees: { id: string; name: string }[]; // Pass employee list for the dropdown
+  onActionSuccess: () => void; // Callback for successful action submission
 };
 
 export default function TakeActionDialog({ isOpen, onDismiss, employees }: TakeActionDialogProps) {

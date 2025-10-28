@@ -1,25 +1,41 @@
 // src/services/useUserRole.ts
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-type UserRole = 'Developer' | 'Director' | 'AVP' | 'MIS';
+// Define the possible roles based on the Development Timeline
+export type UserRole = 'Developer' | 'Director' | 'AVP' | 'MIS' | 'User';
 
 /**
- * Hook to simulate user role authentication based on the project requirements.
- * In a real Power App, this data would come from the Power Platform integration 
- * (e.g., using context or another API call).
+ * Hook to manage and simulate the current user's role for security and feature toggling.
+ * In a production Power App, this would authenticate the user via the Power Platform SDK
+ * and look up their role against a secure Dataverse or PostgreSQL table.
  */
 export const useUserRole = () => {
-    // For development, hardcode a role that should have action permissions
+    // START: Default role for local development testing
     const [role, setRole] = useState<UserRole>('Director'); 
     
-    // Define which roles are authorized to take performance actions
-    const canTakeAction = role === 'Director' || role === 'AVP';
+    // Determine permissions based on the active role
+    const permissions = useMemo(() => {
+        // Roles authorized to submit performance actions (Write Access)
+        const canTakeAction = role === 'Director' || role === 'AVP';
+
+        // Roles that receive full reports (e.g., AVP, Director)
+        const receivesReports = role === 'Director' || role === 'AVP';
+
+        // Roles that receive weekly notifications (e.g., MIS)
+        const receivesNotifications = role === 'MIS';
+        
+        return {
+            canTakeAction,
+            receivesReports,
+            receivesNotifications
+        };
+    }, [role]);
 
     return {
         role,
-        canTakeAction,
-        // Optional: Add a setter for testing different roles
+        ...permissions,
+        // Setter is exposed for development environment testing (via Header component)
         setRole 
     };
 };

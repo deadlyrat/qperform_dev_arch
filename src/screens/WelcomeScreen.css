@@ -22,8 +22,9 @@
 }
 
 .welcome-logo {
-  width: 80px;
-  height: 80px;
+  /* This is overridden by inline style in TSX for the banner logo, but kept for default */
+  width: 180px; 
+  height: auto;
   margin-bottom: 1rem;
 }
 
@@ -53,6 +54,8 @@
   color: #606060;
   line-height: 1.6;
   margin-bottom: 2.5rem;
+  /* --- FIX: JUSTIFY THE TEXT --- */
+  text-align: justify; 
 }
 
 .welcome-footer {
@@ -62,4 +65,3 @@
   font-size: 0.9rem;
   padding-top: 2rem;
 }
-

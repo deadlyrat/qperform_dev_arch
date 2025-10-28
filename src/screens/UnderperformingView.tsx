@@ -1,7 +1,6 @@
 // src/screens/performance/underperforming/UnderperformingView.tsx
 
-import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Avatar,
   Button,
@@ -13,13 +12,12 @@ import {
   Dropdown,
   Option,
 } from '@fluentui/react-components';
-import { Filter24Regular, CalendarMonth24Regular, Comment24Regular } from '@fluentui/react-icons';
+import { CalendarMonth24Regular, Comment24Regular } from '@fluentui/react-icons';
 import './UnderperformingView.css';
 import TakeActionDialog from './TakeActionDialog';
-// CORRECTED IMPORT PATHS
 import FilterPopover from '../components/ui/FilterPopover';
-import RecommendationsDialog from './RecommendationsDialog'; 
-import { useUserRole } from '../services/useUserRole'; 
+import RecommendationsDialog from './RecommendationsDialog';
+import { useUserRole } from '../services/useUserRole'; // <-- Import the role hook
 
 import {
   fetchPerformanceData,
@@ -27,12 +25,12 @@ import {
   fetchFilters,
   calculateAgentMonthlyResults,
   generateRecommendation,
-  fetchActionLog, 
+  fetchActionLog,
   type PerformanceData,
   type FilterOptions,
   type PerformanceFilters,
-  type ActionLog, 
-  type AgentMonthlyResults, 
+  type ActionLog,
+  type AgentMonthlyResults,
   type Recommendation,
 } from '../services/api';
 
@@ -53,17 +51,18 @@ const clientData = [
   { id: 'c2', name: 'Client B', category: 'Category 2', w1_aftes: 16, w1_actions: 4, w1_added: 0, w2_aftes: 13, w2_actions: 3, w2_added: 0, w3_aftes: 14, w3_actions: 3, w3_added: 1, w4_aftes: 14, w4_actions: 4, w4_added: 0, w5_aftes: 14, w5_actions: 1, w5_added: 2 },
 ];
 
+
 export default function UnderperformingView() {
   const [viewMode, setViewMode] = useState<'employee' | 'client'>('employee');
   const [isTakeActionOpen, setIsTakeActionOpen] = useState(false);
-    
-  // --- MISSING STATE DECLARATIONS ADDED HERE ---
+
+  // --- STATE DECLARATIONS ---
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rawData, setRawData] = useState<PerformanceData[]>([]);
   const [groupedData, setGroupedData] = useState<GroupedPerformance>(new Map());
   const [actionLogData, setActionLogData] = useState<ActionLog[]>([]);
-  const [filters, setFilters] = useState<PerformanceFilters>({}); // <-- CRITICAL MISSING STATE
+  const [filters, setFilters] = useState<PerformanceFilters>({});
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
       categories: [], clients: [], tasks: [], months: [], years: [],
   });
@@ -74,19 +73,22 @@ export default function UnderperformingView() {
     monthlyResults: { compliantWeeks: 0, totalWeeks: 0, actionCount: 0 },
     recommendation: { action: '', isCritical: false, notes: '' },
   });
-  
-  const { canTakeAction } = useUserRole();
-  const [refreshKey, setRefreshKey] = useState(0); 
-  
+
+  const { canTakeAction, role } = useUserRole(); // <-- Get role and permission
+  const [refreshKey, setRefreshKey] = useState(0);
+
   // Helper to construct the employee list for the Take Action Dialog
-  const employeeList = Array.from(groupedData.keys()).map(key => {
-      const firstWeekData = Array.from(groupedData.get(key)!.values())[0];
-      const name = firstWeekData[0].agent_email.split('@')[0] || 'Unknown Agent';
-      return { id: key, name: name };
-  });
+  const employeeList = useMemo(() =>
+    Array.from(groupedData.keys()).map(key => {
+        const firstWeekData = Array.from(groupedData.get(key)!.values())[0];
+        const name = firstWeekData[0].agent_email.split('@')[0] || 'Unknown Agent';
+        return { id: key, name: name };
+    }),
+    [groupedData]
+  );
 
   // Combined data fetching function (Requires 'currentFilters' argument)
-  const loadData = async (currentFilters: PerformanceFilters) => {
+  const loadData = useCallback(async (currentFilters: PerformanceFilters) => {
     try {
       setLoading(true);
       setError(null);
@@ -96,40 +98,41 @@ export default function UnderperformingView() {
           fetchPerformanceData(currentFilters),
           fetchActionLog() // Fetch the log to count actions taken
       ]);
-      
+
       const grouped = groupByWeek(performanceData);
 
       setRawData(performanceData);
       setGroupedData(grouped);
       setActionLogData(logData);
-      
+
     } catch (err) {
       console.error('Error fetching data:', err);
       setError("Failed to load performance data. Check API server and network.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Handler for successful action submission
   const handleActionSuccess = () => {
       // Trigger a refresh of the views that depend on the Action Log
       setRefreshKey(prev => prev + 1);
   };
-  
+
   // EFFECT 1: Load Filter Options on mount (corrected to initialize filters)
   useEffect(() => {
     const loadFiltersData = async () => {
         try {
             const options = await fetchFilters();
-            options.years = options.years.sort((a, b) => b - a);
+            // FIX 2: Explicitly type parameters in sort function
+            options.years = options.years.sort((a: number, b: number) => b - a);
             setFilterOptions(options);
-            
+
             // Initialize filters to ensure data load on mount
             if (options.months.length > 0 && options.years.length > 0) {
-                setFilters({ 
-                    month: options.months[0], 
-                    year: String(options.years[0]) 
+                setFilters({
+                    month: options.months[0],
+                    year: String(options.years[0])
                 });
             }
         } catch (e) {
@@ -141,16 +144,15 @@ export default function UnderperformingView() {
 
   // EFFECT 2: Load Data whenever filters OR refreshKey changes
   useEffect(() => {
-    // Check if filters is defined and has necessary values before calling loadData
     if (filters && filters.month && filters.year) {
-        loadData(filters); 
+        loadData(filters);
     }
-  }, [filters, refreshKey]); 
+  }, [filters, refreshKey, loadData]);
 
   // Handler for Month/Year dropdowns
-  const handleTimeFilterChange = (filterName: 'month' | 'year') => 
-    (_e: React.SyntheticEvent<HTMLElement, Event>, data: { optionValue: string | undefined }) => {
-      setFilters(prev => ({
+  const handleTimeFilterChange = (filterName: 'month' | 'year') =>
+    (_e: React.SyntheticEvent<HTMLElement, Event>, data: { optionValue?: string }) => {
+      setFilters((prev: PerformanceFilters) => ({
         ...prev,
         [filterName]: data.optionValue === '' ? undefined : data.optionValue,
       }));
@@ -161,7 +163,7 @@ export default function UnderperformingView() {
   const handleShowRecommendation = (agentKey: string, agentName: string, weeksMap: Map<string, PerformanceData[]>) => {
     // 1. Calculate Monthly Results
     const monthlyResults = calculateAgentMonthlyResults(weeksMap, agentKey, actionLogData);
-    
+
     // 2. Generate Recommendation
     const recommendation = generateRecommendation(monthlyResults);
 
@@ -188,7 +190,7 @@ export default function UnderperformingView() {
     }
     return 'green';
   };
-  
+
   // Helper function to render a single week's data
   const renderWeekCell = (weekData: PerformanceData[] | undefined) => {
     if (!weekData || weekData.length === 0) {
@@ -199,37 +201,36 @@ export default function UnderperformingView() {
         </div>
       );
     }
-    
+
     // Calculate average KPI for display
     const avgKpi = (weekData.reduce((sum, d) => sum + d.kpi_qa, 0) / weekData.length) * 100;
     const flagColor = getFlagColor(weekData);
 
-    // TODO: This should be derived from the ActionLog API data
-    const actionTaken = 'No'; 
-    
+    const actionTaken = 'No';
+
     return (
       <div className="grid-card week-cell-card">
         <span className="weekly-score" style={{ color: flagColor }}>{avgKpi.toFixed(1)}%</span>
         <span className="action-taken-label">Action Taken</span>
-        <span 
-            className="action-taken-value" 
-            style={{ color: actionTaken === 'Yes' ? 'green' : 'red' }}
+        <span
+            className="action-taken-value"
+            style={{ color: actionTaken === 'No' ? 'red' : 'green' }}
         >
             {actionTaken}
         </span>
       </div>
     );
   };
-  
+
   // Function to render the Employee grid with live data
   const renderEmployeeGrid = () => {
     if (groupedData.size === 0 && !loading) {
         return <div style={{padding: '20px', textAlign: 'center'}}>No underperforming data found for the selected filters.</div>;
     }
 
-    const allWeeks = Array.from(new Set(rawData.map(d => d.week_range))).sort(); 
+    const allWeeks = Array.from(new Set(rawData.map(d => d.week_range))).sort();
     const headers = ["Employee List", ...allWeeks, "Monthly Results"];
-    
+
     const gridColumnsStyle = { gridTemplateColumns: `1.5fr repeat(${allWeeks.length}, 1fr) 1fr` };
 
     return (
@@ -243,7 +244,7 @@ export default function UnderperformingView() {
         {Array.from(groupedData.entries()).map(([agentKey, weeksMap]) => {
           const firstRecord = Array.from(weeksMap.values())[0][0];
           const employeeName = firstRecord.agent_email.split('@')[0];
-          
+
           // CALCULATE REAL MONTHLY METRICS
           const monthlyResults = calculateAgentMonthlyResults(weeksMap, agentKey, actionLogData);
           const scoreText = `${monthlyResults.compliantWeeks} / ${monthlyResults.totalWeeks}`;
@@ -255,14 +256,14 @@ export default function UnderperformingView() {
                 <Avatar name={employeeName} color="colorful" />
                 <span>{employeeName}</span>
               </div>
-              
+
               {/* Render Week Cells dynamically */}
               {allWeeks.map(week => (
                 <div key={`${agentKey}-${week}`} className="grid-cell">
-                    {renderWeekCell(weeksMap.get(week))} 
+                    {renderWeekCell(weeksMap.get(week))}
                 </div>
               ))}
-              
+
               {/* Monthly Results Cell (UPDATED) */}
               <div className="grid-card monthly-results-card">
                 <div className="result-item">
@@ -270,7 +271,7 @@ export default function UnderperformingView() {
                     <span>Actions Taken: {actionText}</span>
                 </div>
                 {/* Button to show the recommendation dialog */}
-                <Comment24Regular 
+                <Comment24Regular
                     onClick={() => handleShowRecommendation(agentKey, employeeName, weeksMap)}
                     style={{ cursor: 'pointer', color: '#0078d4' }}
                 />
@@ -281,7 +282,7 @@ export default function UnderperformingView() {
       </div>
     );
   };
-  
+
   // Simplified Mock Render for Client View
   const renderClientGrid = () => {
       const headers = ["Client List", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5"];
@@ -310,12 +311,12 @@ export default function UnderperformingView() {
   const onViewModeSelect = (_event: SelectTabEvent, data: SelectTabData) => {
     setViewMode(data.value as 'employee' | 'client');
   };
-  
+
   // --- Loading/Error Handlers ---
   if (loading && groupedData.size === 0) {
     return <Spinner label="Loading performance data..." />;
   }
-  
+
   if (error && groupedData.size === 0) {
     return <div style={{ color: 'red', padding: '20px' }}>{error}</div>;
   }
@@ -324,13 +325,13 @@ export default function UnderperformingView() {
   return (
     <div className="underperforming-container">
       {/* Action Dialog */}
-      <TakeActionDialog 
-        isOpen={isTakeActionOpen} 
+      <TakeActionDialog
+        isOpen={isTakeActionOpen}
         onDismiss={() => setIsTakeActionOpen(false)}
         employees={employeeList}
-        onActionSuccess={handleActionSuccess} 
+        onActionSuccess={handleActionSuccess}
       />
-      
+
       {/* Recommendations Dialog (NEW) */}
       <RecommendationsDialog
         isOpen={recommendationDialog.isOpen}
@@ -339,11 +340,11 @@ export default function UnderperformingView() {
         monthlyResults={recommendationDialog.monthlyResults}
         recommendation={recommendationDialog.recommendation}
       />
-      
+
       {/* Filter Bar */}
       <div className="filter-bar">
         <div className="left-filters">
-            <FilterPopover 
+            <FilterPopover
                 filterOptions={filterOptions}
                 currentFilters={filters}
                 setFilters={setFilters}
@@ -356,8 +357,8 @@ export default function UnderperformingView() {
                     onOptionSelect={handleTimeFilterChange('month')}
                     style={{ minWidth: '120px' }}
                 >
-                    {filterOptions.months.map(month => (
-                        <Option key={month} value={month}>{month}</Option>
+                    {filterOptions.months.map((month: string) => (
+                        <Option key={month} value={month} text={month}>{month}</Option>
                     ))}
                 </Dropdown>
                 <Dropdown
@@ -366,18 +367,26 @@ export default function UnderperformingView() {
                     onOptionSelect={handleTimeFilterChange('year')}
                     style={{ minWidth: '80px' }}
                 >
-                    {filterOptions.years.map(year => (
-                        <Option key={year} value={String(year)}>{year}</Option>
+                    {filterOptions.years.map((year: number) => (
+                        <Option key={year} value={String(year)} text={String(year)}>{year}</Option>
                     ))}
                 </Dropdown>
             </div>
         </div>
-        
+
+        {/* Right Filters: Take Action Button (Role-Based Visibility) */}
         <div className="right-filters">
+            {/* FINAL SECURITY CHECK: Only show/enable if user role allows it */}
             {canTakeAction ? (
                 <Button appearance="primary" onClick={() => setIsTakeActionOpen(true)}>Nav: Take Action</Button>
             ) : (
-                 <Button appearance="primary" disabled title="Only authorized leadership (Directors, AVPs) can take action.">Nav: Take Action</Button>
+                 <Button 
+                    appearance="primary" 
+                    disabled 
+                    title={`Role (${role}) does not have permission to take action.`} // Dynamic title for clarity
+                >
+                    Nav: Take Action
+                </Button>
             )}
         </div>
       </div>
@@ -388,12 +397,12 @@ export default function UnderperformingView() {
             <Tab value="client">Client Category</Tab>
         </TabList>
       </div>
-      
+
       {/* Conditionally render the correct grid based on the viewMode state */}
       {viewMode === 'employee' ? renderEmployeeGrid() : renderClientGrid()}
-      
+
       {/* Show loading spinner while filtering/re-fetching */}
-      {loading && groupedData.size > 0 && 
+      {loading && groupedData.size > 0 &&
         <div style={{ padding: '20px', textAlign: 'center' }}>
             <Spinner size="small" label="Updating data..." />
         </div>

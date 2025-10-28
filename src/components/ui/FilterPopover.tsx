@@ -1,5 +1,3 @@
-// src/components/ui/FilterPopover.tsx
-
 import * as React from 'react';
 import {
   Popover,
@@ -11,6 +9,9 @@ import {
   Label,
   makeStyles,
   tokens,
+  // FIX: Import types using the 'type' keyword
+  type OptionOnSelectData, 
+  type SelectionEvents, 
 } from '@fluentui/react-components';
 import { Filter24Regular } from '@fluentui/react-icons';
 import { type FilterOptions, type PerformanceFilters } from '../../services/api';
@@ -40,12 +41,16 @@ interface FilterPopoverProps {
 export default function FilterPopover({ filterOptions, currentFilters, setFilters }: FilterPopoverProps) {
   const styles = useStyles();
 
-  // Unified handler for all dropdown changes
+  // Unified handler now uses Fluent UI's specific type OptionOnSelectData
+  // Both parameters (event and data) need to use the imported types.
   const handleFilterChange = (filterName: keyof PerformanceFilters) => 
-    (_e: React.SyntheticEvent<HTMLElement, Event>, data: { optionValue: string }) => {
+    (_e: SelectionEvents, data: OptionOnSelectData) => { 
+      // data.optionValue is string | undefined. Use the value, if it's the empty string, treat it as undefined
+      const selectedValue = data.optionValue === '' ? undefined : data.optionValue;
+      
       setFilters(prev => ({
         ...prev,
-        [filterName]: data.optionValue === '' ? undefined : data.optionValue,
+        [filterName]: selectedValue,
       }));
   };
 

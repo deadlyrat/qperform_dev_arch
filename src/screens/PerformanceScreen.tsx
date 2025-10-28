@@ -6,6 +6,7 @@ import { Tab, TabList, type SelectTabData, type SelectTabEvent } from '@fluentui
 // Import the main layout components and its corresponding stylesheet
 import Header from '../components/Header';
 import './PerformanceScreen.css';
+import { useUserRole } from '../services/useUserRole'; // <-- Import the role hook
 
 // Import the three view components that will be shown in the tabs
 import MonthlySummaryView from './MonthlySummaryView';
@@ -15,20 +16,20 @@ import UnderperformingView from './UnderperformingView';
 // Define a TypeScript type for our possible views to prevent typos and errors
 type View = 'underperforming' | 'summary' | 'actionlog';
 
-export default function PerformanceScreen() {
-  // State to keep track of the currently selected tab. Defaults to 'underperforming'.
-  const [selectedView, setSelectedView] = useState<View>('underperforming');
+// NEW PROPS INTERFACE (received from App.tsx)
+interface PerformanceScreenProps {
+  onGoToWelcome: () => void;
+}
 
-  // This function is called when a user clicks on a different tab
+export default function PerformanceScreen({ onGoToWelcome }: PerformanceScreenProps) {
+  const [selectedView, setSelectedView] = useState<View>('underperforming');
+  // 1. Get role and permission flags from the hook
+  const { role, receivesReports, receivesNotifications } = useUserRole(); 
+
   const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) => {
-    // We update the state to the value of the newly selected tab
     setSelectedView(data.value as View);
   };
 
-  /**
-   * A helper function to conditionally render the correct view component
-   * based on the current state. This keeps the main return statement clean.
-   */
   const renderContent = () => {
     switch (selectedView) {
       case 'underperforming':
@@ -38,37 +39,48 @@ export default function PerformanceScreen() {
       case 'actionlog':
         return <ActionLogView />;
       default:
-        // It's good practice to return null as a fallback
         return null;
     }
   };
 
-  // In a real application, you would fetch this user data from an API call
+  // User details (Name for Avatar, notifications for badge)
   const currentUser = {
     name: "Pablo Aguirre",
     notifications: 3,
   };
+  
+  // 2. Custom message based on role (Acknowledging notification recipients)
+  const getRoleMessage = () => {
+      if (receivesReports) {
+          // Director/AVP Role: Receives full reports
+          return `Your role (${role}) receives automated Weekly Performance Reports and has full action authority.`;
+      }
+      if (receivesNotifications) {
+          // MIS Role: Receives weekly notifications
+          return `Your role (${role}) receives Weekly Notifications to monitor high-risk trends.`;
+      }
+      // Standard User Role: View-only
+      return `Your role (${role}) has view-only access to all dashboards.`;
+  };
 
   return (
-    // This is the root container that uses our Flexbox layout from the CSS file.
-    // It is designed to fill the full height of its parent.
     <div className="performance-screen-container">
       
-      {/* The Header component is always visible at the top. */}
-      {/* We pass it dynamic data to make it reusable. */}
+      {/* Pass the welcome reset function to the Header's logo click handler */}
       <Header 
         userName={currentUser.name} 
         notificationCount={currentUser.notifications} 
+        onLogoClick={onGoToWelcome} 
       />
       
-      {/* The <main> content area will grow and scroll independently from the header. */}
       <main className="performance-screen-content">
         
-        {/* Screen Title and Description */}
+        {/* Screen Title and Role-Based Message Banner */}
         <div style={{ marginBottom: '16px' }}>
           <h2 style={{ margin: '0 0 4px 0' }}>Performance Review</h2>
-          <p style={{ color: '#606060', margin: 0, fontSize: '14px' }}>
-            Monitor and manage underperforming employees across all clients and categories
+          {/* Display the role-based notification and permission summary */}
+          <p style={{ color: '#005a9e', margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
+            {getRoleMessage()}
           </p>
         </div>
 
