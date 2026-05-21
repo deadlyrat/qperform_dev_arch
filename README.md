@@ -1,14 +1,14 @@
-# qperform — Architecture Prototypes
+# qperform — Prototipos de Arquitectura
 
-![Archived](https://img.shields.io/badge/Status-Archived-lightgrey?style=flat)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![Archivado](https://img.shields.io/badge/Estado-Archivado-lightgrey?style=flat)
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg" width="18" align="absmiddle" /> ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 
-> Architecture and design pattern prototypes for the qperform dashboard project.
+> Prototipos de arquitectura y patrones de diseno para el proyecto dashboard qperform.
 
-This repository contains TypeScript architectural experiments and patterns evaluated during the design phase of the qperform project. For full context, see: [**qperform_dev**](https://github.com/deadlyrat/qperform_dev).
+Este repositorio contiene experimentos arquitectonicos y patrones en TypeScript evaluados durante la fase de diseno del proyecto qperform. Para contexto completo, ver: [**qperform_dev**](https://github.com/deadlyrat/qperform_dev).
 
 ---
 
-## ⚠️ Status
+## Estado
 
-**Archived** — development paused when author changed companies. Published for portfolio reference.
+**Archivado** — desarrollo pausado al cambiar de empresa. Publicado como referencia de portfolio.
