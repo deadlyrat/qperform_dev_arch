@@ -1,3 +1,5 @@
+> Repositorio archivado. La versión actual vive en [qperform_dev](https://github.com/deadlyrat/qperform_dev).
+
 # qperform — Prototipos de Arquitectura
 
 ![Archivado](https://img.shields.io/badge/Estado-Archivado-lightgrey?style=flat)
